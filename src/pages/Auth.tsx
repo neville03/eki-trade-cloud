@@ -15,7 +15,6 @@ import {
 const Auth = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -26,29 +25,34 @@ const Auth = () => {
       let data, error;
 
       if (mode === "signup") {
+        // SIGN UP
         ({ data, error } = await supabase.auth.signUp({ email, password }));
+        if (error) return alert(error.message);
+
+        const user = data.user;
+        if (!user) return alert("Failed to create user");
+
+        // Assign vendor role
+        const { error: roleError } = await supabase.from("user_roles").insert({
+          user_id: user.id,
+          role: "vendor",
+        });
+        if (roleError) return alert("Failed to assign vendor role: " + roleError.message);
       } else {
+        // LOGIN
         ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+        if (error) return alert(error.message);
       }
 
-      if (error) return alert(error.message);
-
-      // Wait for session initialization
+      // Wait for session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        return alert("Session not initialized. Try again.");
-      }
+      if (sessionError || !sessionData.session) return alert("Session not ready. Try again.");
 
       const user = sessionData.session.user;
 
-      // assign vendor role if signing up
-      if (mode === "signup") {
-        await supabase.from("roles").insert({ user_id: user.id, role: "vendor" });
-      }
-
-      // fetch role
+      // Fetch role from user_roles
       const { data: userRole } = await supabase
-        .from("roles")
+        .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
@@ -57,6 +61,7 @@ const Auth = () => {
         return alert("Access denied. Vendor account required.");
       }
 
+      // SUCCESS - redirect to vendor dashboard
       navigate("/vendor/dashboard");
     } catch (err) {
       console.error(err);
