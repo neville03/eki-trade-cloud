@@ -27,7 +27,7 @@ const VendorDashboard = () => {
     // CHECK ROLE (correct table!)
     const { data: role, error: roleError } = await supabase
       .from("user_roles")           // ✅ FIXED
-      .select("role")
+      .select("role") //fixed
       .eq("user_id", user.id)
       .single();
 
