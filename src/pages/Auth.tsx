@@ -20,56 +20,47 @@ const Auth = () => {
   const [password, setPassword] = useState("");
 
   const handleAuth = async () => {
-    if (mode === "signup") {
-      // SIGN UP
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+    if (!email || !password) return alert("Enter email and password");
 
-      if (error) {
-        alert(error.message);
-        return;
+    try {
+      let data, error;
+
+      if (mode === "signup") {
+        ({ data, error } = await supabase.auth.signUp({ email, password }));
+      } else {
+        ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
       }
 
-      const user = data.user;
-      if (!user) return;
+      if (error) return alert(error.message);
 
-      // assign vendor role
-      await supabase.from("roles").insert({
-        user_id: user.id,
-        role: "vendor",
-      });
-
-      navigate("/vendor/dashboard");
-    } else {
-      // LOGIN
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        alert(error.message);
-        return;
+      // Wait for session initialization
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        return alert("Session not initialized. Try again.");
       }
 
-      const session = data.session;
-      if (!session) return;
+      const user = sessionData.session.user;
+
+      // assign vendor role if signing up
+      if (mode === "signup") {
+        await supabase.from("roles").insert({ user_id: user.id, role: "vendor" });
+      }
 
       // fetch role
       const { data: userRole } = await supabase
         .from("roles")
-        .select("*")
-        .eq("user_id", session.user.id)
+        .select("role")
+        .eq("user_id", user.id)
         .single();
 
       if (!userRole || userRole.role !== "vendor") {
-        alert("Access denied. Vendor account required.");
-        return;
+        return alert("Access denied. Vendor account required.");
       }
 
       navigate("/vendor/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Try again.");
     }
   };
 
