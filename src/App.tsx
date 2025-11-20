@@ -27,14 +27,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
 
           {/* PROTECTED ROUTES */}
-          <Route
-            path="/vendor/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={["vendor"]}>
-                <VendorDashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+
 
           <Route
             path="/admin/dashboard"
