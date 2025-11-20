@@ -1,10 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Store, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import heroBg from "@/assets/hero-bg.jpg";
 
 export const Hero = () => {
   return (
-    <section className="relative min-h-[600px] flex items-center bg-gradient-to-br from-primary via-navy-light to-navy-lighter overflow-hidden">
+    <section className="relative min-h-[600px] flex items-center overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${heroBg})` }}
+      >
+        <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" />
+      </div>
       {/* Animated background elements */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl animate-pulse" />
@@ -39,8 +47,8 @@ export const Hero = () => {
               </Button>
             </Link>
             
-            <Link to="/signup/vendor">
-              <Button size="lg" variant="outline" className="group border-2 border-white text-white hover:bg-white hover:text-primary px-8 h-14 text-lg">
+            <Link to="/auth/vendor">
+              <Button size="lg" variant="outline" className="group border-2 border-white bg-transparent text-white hover:bg-white hover:text-primary px-8 h-14 text-lg">
                 <Store className="mr-2 h-5 w-5" />
                 Sign Up as Vendor
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
