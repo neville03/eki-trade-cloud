@@ -1,18 +1,13 @@
 import { Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
-interface ProtectedProps {
-  children: React.ReactNode;
-  allowedRoles: string[];
-}
-
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedProps) {
-  const [role, setRole] = useState<string | null>(null);
+export default function ProtectedRoute({ children, allowedRoles }) {
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRole() {
+    async function loadRole() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -23,29 +18,24 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedProp
         return;
       }
 
-      const { data: userRole, error } = await supabase
+      const { data: userRole } = await supabase
         .from("roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      if (error || !userRole) {
-        setRole("none");
-      } else {
-        setRole(userRole.role);
-      }
-
+      setRole(userRole?.role || "none");
       setLoading(false);
     }
 
-    fetchRole();
+    loadRole();
   }, []);
 
   if (loading) return null;
 
-  if (!allowedRoles.includes(role!)) {
+  if (!allowedRoles.includes(role)) {
     return <Navigate to="/marketplace" replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
