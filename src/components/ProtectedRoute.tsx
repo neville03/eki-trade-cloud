@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       }
 
       const { data: userRole } = await supabase
-        .from("roles")
+        .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
