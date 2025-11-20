@@ -11,7 +11,7 @@ export const Hero = () => {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroBg})` }}
       >
-        <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-primary/60" />
       </div>
       {/* Animated background elements */}
       <div className="absolute inset-0 opacity-10">
@@ -47,7 +47,7 @@ export const Hero = () => {
               </Button>
             </Link>
             
-            <Link to="/auth/vendor">
+            <Link to="/auth?type=vendor">
               <Button size="lg" variant="outline" className="group border-2 border-white bg-transparent text-white hover:bg-white hover:text-primary px-8 h-14 text-lg">
                 <Store className="mr-2 h-5 w-5" />
                 Sign Up as Vendor
