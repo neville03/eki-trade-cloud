@@ -1,101 +1,160 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-export default function Auth({ role = "customer" }) {
+const Auth = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const mode = params.get("mode") || "login";
+  const roleFromUrl = params.get("role") || "customer"; // customer | vendor | admin
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // SIGN UP
-  const handleSignup = async () => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+  const isVendor = roleFromUrl === "vendor";
+  const isAdmin = roleFromUrl === "admin";
 
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+  const handleAuth = async () => {
+    if (mode === "signup") {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    const user = data.user;
+      if (error) {
+        alert(error.message);
+        return;
+      }
 
-    // Insert role into Supabase
-    await supabase.from("roles").insert({
-      user_id: user.id,
-      role: role, // "vendor" or "customer"
-    });
+      const user = data.user;
+      if (!user) return;
 
-    toast.success("Account created!");
+      await supabase.from("roles").insert({
+        user_id: user.id,
+        role: roleFromUrl, // customer | vendor | admin
+      });
 
-    if (role === "vendor") {
-      navigate("/vendor/dashboard");
+      if (isVendor) {
+        navigate("/vendor/dashboard");
+      } else if (isAdmin) {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/marketplace");
+      }
     } else {
-      navigate("/marketplace");
-    }
-  };
+      // LOGIN
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  // SIGN IN
-  const handleSignin = async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      if (error) {
+        alert(error.message);
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+      const session = data.session;
+      if (!session) return;
 
-    // Fetch role
-    const { data: userRole } = await supabase
-      .from("roles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .single();
+      const { data: userRole } = await supabase
+        .from("roles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single();
 
-    const role = userRole?.role;
+      if (!userRole) return navigate("/marketplace");
 
-    if (role === "vendor") {
-      navigate("/vendor/dashboard");
-    } else if (role === "admin") {
-      navigate("/admin/dashboard");
-    } else {
-      navigate("/marketplace");
+      if (userRole.role === "vendor") {
+        navigate("/vendor/dashboard");
+      } else if (userRole.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/marketplace");
+      }
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6">
-      <h2 className="text-2xl font-bold mb-4">
-        {role === "vendor" ? "Vendor Sign Up / Login" : "Sign Up / Login"}
-      </h2>
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>
+            {mode === "signup"
+              ? isVendor
+                ? "Vendor Sign Up"
+                : "Create Account"
+              : "Log In"}
+          </CardTitle>
+          <CardDescription>
+            {mode === "signup"
+              ? isVendor
+                ? "Register to start selling"
+                : "Join the marketplace"
+              : "Access your account"}
+          </CardDescription>
+        </CardHeader>
 
-      <div className="w-full max-w-md space-y-4">
-        <Label>Email</Label>
-        <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        <Label>Password</Label>
-        <Input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <div>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              placeholder="*******"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
 
-        <div className="flex space-x-2">
-          <Button onClick={handleSignup} className="w-full">
-            Sign Up
+          <Button onClick={handleAuth} className="w-full">
+            {mode === "signup" ? "Sign Up" : "Log In"}
           </Button>
-          <Button variant="outline" onClick={handleSignin} className="w-full">
-            Sign In
-          </Button>
-        </div>
-      </div>
+
+          <div className="text-sm text-center mt-3">
+            {mode === "signup" ? (
+              <Link to={`/auth?mode=login&role=${roleFromUrl}`}>
+                Already have an account? Log in
+              </Link>
+            ) : (
+              <Link to={`/auth?mode=signup&role=${roleFromUrl}`}>
+                Create an account
+              </Link>
+            )}
+          </div>
+
+          {!isVendor && (
+            <div className="text-center text-sm mt-3">
+              <Link
+                className="underline text-blue-600"
+                to="/auth?mode=signup&role=vendor"
+              >
+                Sign up as a Vendor
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Auth;
