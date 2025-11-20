@@ -43,7 +43,7 @@ export const VendorCTA = () => {
             </div>
           </div>
 
-          <Link to="/auth/vendor">
+          <Link to="/auth?type=vendor">
             <Button size="lg" className="bg-white text-primary hover:bg-white/90 px-12 h-14 text-lg shadow-elegant">
               <Store className="mr-2 h-5 w-5" />
               Create Vendor Account

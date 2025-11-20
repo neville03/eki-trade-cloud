@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
+import { ArrowLeft } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -153,6 +154,12 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Link to="/" className="absolute top-4 left-4">
+        <Button variant="ghost" size="sm">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Home
+        </Button>
+      </Link>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{isVendor ? "Vendor" : "Customer"} Authentication</CardTitle>
