@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import Marketplace from "./pages/Marketplace";
 import Auth from "./pages/Auth";
 import VendorDashboard from "./pages/VendorDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -26,15 +25,12 @@ const App = () => (
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/auth" element={<Auth />} />
 
-          {/* PROTECTED ROUTES */}
-          <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-
-
+          {/* PROTECTED ROUTE */}
           <Route
-            path="/admin/dashboard"
+            path="/vendor/dashboard"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
+              <ProtectedRoute allowedRoles={["vendor"]}>
+                <VendorDashboard />
               </ProtectedRoute>
             }
           />
