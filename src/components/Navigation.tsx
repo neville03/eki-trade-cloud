@@ -31,7 +31,7 @@ export const Navigation = () => {
               <Button variant="ghost">Marketplace</Button>
             </Link>
             
-            <Link to="/signup/vendor">
+            <Link to="/auth/vendor">
               <Button variant="default" className="hidden md:flex bg-primary hover:bg-primary/90">
                 Sell on EKI
               </Button>
