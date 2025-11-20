@@ -8,9 +8,10 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
   useEffect(() => {
     async function loadRole() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // Get session instead of just user
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      const user = sessionData?.session?.user;
 
       if (!user) {
         setRole("none");
@@ -31,10 +32,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     loadRole();
   }, []);
 
-  if (loading) return null;
+  if (loading) return <div className="p-10 text-center">Loading...</div>;
 
   if (!allowedRoles.includes(role)) {
-    return <Navigate to="/marketplace" replace />;
+    // redirect unauthorized users to auth page
+    return <Navigate to="/auth" replace />;
   }
 
   return children;
