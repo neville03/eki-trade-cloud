@@ -32,41 +32,19 @@ const Auth = () => {
 
       if (error) return alert(error.message);
 
-      // Wait for session to initialize
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        return alert("Session not initialized. Try again.");
-      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+      if (!user) return alert("No session found.");
 
-      const user = sessionData.session.user;
-
-      // Assign vendor role on signup
       if (mode === "signup") {
         const { error: roleError } = await supabase.from("user_roles").insert({
           user_id: user.id,
           role: "vendor",
         });
-
-        if (roleError) {
-          console.error("Failed to assign vendor role:", roleError.message);
-          return alert("Failed to assign vendor role: " + roleError.message);
-        }
-
-        // Optional: small delay to ensure insert commits
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (roleError) return alert("Failed to assign role: " + roleError.message);
       }
 
-      // Fetch role
-      const { data: userRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!userRole || userRole.role !== "vendor") {
-        return alert("Access denied. Vendor account required.");
-      }
-
+      // Directly navigate to vendor dashboard after login/signup
       navigate("/vendor/dashboard");
     } catch (err) {
       console.error(err);
