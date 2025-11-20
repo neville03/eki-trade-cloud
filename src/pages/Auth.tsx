@@ -25,32 +25,38 @@ const Auth = () => {
       let data, error;
 
       if (mode === "signup") {
-        // SIGN UP
         ({ data, error } = await supabase.auth.signUp({ email, password }));
-        if (error) return alert(error.message);
+      } else {
+        ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+      }
 
-        const user = data.user;
-        if (!user) return alert("Failed to create user");
+      if (error) return alert(error.message);
 
-        // Assign vendor role
+      // Wait for session to initialize
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        return alert("Session not initialized. Try again.");
+      }
+
+      const user = sessionData.session.user;
+
+      // Assign vendor role on signup
+      if (mode === "signup") {
         const { error: roleError } = await supabase.from("user_roles").insert({
           user_id: user.id,
           role: "vendor",
         });
-        if (roleError) return alert("Failed to assign vendor role: " + roleError.message);
-      } else {
-        // LOGIN
-        ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
-        if (error) return alert(error.message);
+
+        if (roleError) {
+          console.error("Failed to assign vendor role:", roleError.message);
+          return alert("Failed to assign vendor role: " + roleError.message);
+        }
+
+        // Optional: small delay to ensure insert commits
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      // Wait for session
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) return alert("Session not ready. Try again.");
-
-      const user = sessionData.session.user;
-
-      // Fetch role from user_roles
+      // Fetch role
       const { data: userRole } = await supabase
         .from("user_roles")
         .select("role")
@@ -61,7 +67,6 @@ const Auth = () => {
         return alert("Access denied. Vendor account required.");
       }
 
-      // SUCCESS - redirect to vendor dashboard
       navigate("/vendor/dashboard");
     } catch (err) {
       console.error(err);
@@ -73,13 +78,9 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>
-            {mode === "signup" ? "Vendor Sign Up" : "Vendor Log In"}
-          </CardTitle>
+          <CardTitle>{mode === "signup" ? "Vendor Sign Up" : "Vendor Log In"}</CardTitle>
           <CardDescription>
-            {mode === "signup"
-              ? "Register to start selling"
-              : "Access your vendor account"}
+            {mode === "signup" ? "Register to start selling" : "Access your vendor account"}
           </CardDescription>
         </CardHeader>
 
