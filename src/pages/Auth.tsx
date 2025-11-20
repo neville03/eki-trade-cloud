@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,18 +14,14 @@ import {
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const mode = params.get("mode") || "login";
-  const roleFromUrl = params.get("role") || "customer"; // customer | vendor | admin
+  const [mode, setMode] = useState<"login" | "signup">("login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const isVendor = roleFromUrl === "vendor";
-  const isAdmin = roleFromUrl === "admin";
-
   const handleAuth = async () => {
     if (mode === "signup") {
+      // SIGN UP
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -39,18 +35,13 @@ const Auth = () => {
       const user = data.user;
       if (!user) return;
 
+      // assign vendor role
       await supabase.from("roles").insert({
         user_id: user.id,
-        role: roleFromUrl, // customer | vendor | admin
+        role: "vendor",
       });
 
-      if (isVendor) {
-        navigate("/vendor/dashboard");
-      } else if (isAdmin) {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/marketplace");
-      }
+      navigate("/vendor/dashboard");
     } else {
       // LOGIN
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -66,21 +57,19 @@ const Auth = () => {
       const session = data.session;
       if (!session) return;
 
+      // fetch role
       const { data: userRole } = await supabase
         .from("roles")
         .select("*")
         .eq("user_id", session.user.id)
         .single();
 
-      if (!userRole) return navigate("/marketplace");
-
-      if (userRole.role === "vendor") {
-        navigate("/vendor/dashboard");
-      } else if (userRole.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/marketplace");
+      if (!userRole || userRole.role !== "vendor") {
+        alert("Access denied. Vendor account required.");
+        return;
       }
+
+      navigate("/vendor/dashboard");
     }
   };
 
@@ -89,18 +78,12 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>
-            {mode === "signup"
-              ? isVendor
-                ? "Vendor Sign Up"
-                : "Create Account"
-              : "Log In"}
+            {mode === "signup" ? "Vendor Sign Up" : "Vendor Log In"}
           </CardTitle>
           <CardDescription>
             {mode === "signup"
-              ? isVendor
-                ? "Register to start selling"
-                : "Join the marketplace"
-              : "Access your account"}
+              ? "Register to start selling"
+              : "Access your vendor account"}
           </CardDescription>
         </CardHeader>
 
@@ -131,26 +114,21 @@ const Auth = () => {
 
           <div className="text-sm text-center mt-3">
             {mode === "signup" ? (
-              <Link to={`/auth?mode=login&role=${roleFromUrl}`}>
+              <button
+                onClick={() => setMode("login")}
+                className="underline text-blue-600"
+              >
                 Already have an account? Log in
-              </Link>
+              </button>
             ) : (
-              <Link to={`/auth?mode=signup&role=${roleFromUrl}`}>
-                Create an account
-              </Link>
+              <button
+                onClick={() => setMode("signup")}
+                className="underline text-blue-600"
+              >
+                Create a vendor account
+              </button>
             )}
           </div>
-
-          {!isVendor && (
-            <div className="text-center text-sm mt-3">
-              <Link
-                className="underline text-blue-600"
-                to="/auth?mode=signup&role=vendor"
-              >
-                Sign up as a Vendor
-              </Link>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
