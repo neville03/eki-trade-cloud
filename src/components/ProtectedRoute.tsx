@@ -2,45 +2,45 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 
-interface ProtectedRouteProps {
-  children: JSX.Element;
-  allowedRoles: string[];
-}
-
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles }) {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadRole() {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const user = sessionData?.session?.user;
+      // wait for auth state change first
+      const { data: { session } } = await supabase.auth.getSession();
 
-        if (!user) {
-          setRole("none");
-          setLoading(false);
-          return;
-        }
+      if (!session) {
+        setRole("none");
+        setLoading(false);
+        return;
+      }
 
-        const { data: userRole, error } = await supabase
+      const user = session.user;
+
+      // fetch role
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      // wait if role is not yet available
+      if (!userRole) {
+        // optional: small delay, retry
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const { data: retryRole } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
           .single();
-
-        if (error) {
-          console.error("Error fetching role:", error.message);
-          setRole("none");
-        } else {
-          setRole(userRole?.role || "none");
-        }
-      } catch (err) {
-        console.error("ProtectedRoute error:", err);
-        setRole("none");
-      } finally {
-        setLoading(false);
+        setRole(retryRole?.role || "none");
+      } else {
+        setRole(userRole.role);
       }
+
+      setLoading(false);
     }
 
     loadRole();
@@ -48,7 +48,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
 
-  if (!allowedRoles.includes(role!)) {
+  if (!allowedRoles.includes(role)) {
     return <Navigate to="/auth" replace />;
   }
 
