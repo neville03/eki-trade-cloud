@@ -14,47 +14,71 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isVendor = searchParams.get("type") === "vendor";
-  
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
-  
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  
+
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
-  
-  // Vendor specific fields
+
+  // Vendor fields
   const [businessName, setBusinessName] = useState("");
   const [businessDescription, setBusinessDescription] = useState("");
   const [businessType, setBusinessType] = useState("");
 
+  // --------- ROLE CHECKER ----------
+  const checkUserRole = async (userId: string) => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .single();
+
+    if (!roles) {
+      navigate("/marketplace");
+      return;
+    }
+
+    if (roles.role === "vendor") {
+      navigate("/vendor/dashboard");
+    } else {
+      navigate("/marketplace");
+    }
+  };
+
+  // -------- AUTH CHANGE LISTENER --------
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        navigate(isVendor ? "/vendor/dashboard" : "/marketplace");
+        checkUserRole(session.user.id);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        navigate(isVendor ? "/vendor/dashboard" : "/marketplace");
+        checkUserRole(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, isVendor]);
+  }, []);
 
+  // -------- LOGIN --------
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -69,10 +93,11 @@ export default function Auth() {
     } else {
       toast.success("Logged in successfully!");
     }
-    
+
     setLoading(false);
   };
 
+  // -------- SIGNUP --------
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -84,8 +109,8 @@ export default function Auth() {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
           full_name: fullName,
-        }
-      }
+        },
+      },
     });
 
     if (authError) {
@@ -96,14 +121,12 @@ export default function Auth() {
 
     if (authData.user) {
       // Create profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: authData.user.id,
-          full_name: fullName,
-          phone: phone || null,
-          location: location || null,
-        });
+      const { error: profileError } = await supabase.from("profiles").insert({
+        user_id: authData.user.id,
+        full_name: fullName,
+        phone: phone || null,
+        location: location || null,
+      });
 
       if (profileError) {
         toast.error("Failed to create profile: " + profileError.message);
@@ -111,13 +134,11 @@ export default function Auth() {
         return;
       }
 
-      // Create user role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: isVendor ? "vendor" : "customer",
-        });
+      // Assign role
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        user_id: authData.user.id,
+        role: isVendor ? "vendor" : "customer",
+      });
 
       if (roleError) {
         toast.error("Failed to assign role: " + roleError.message);
@@ -125,17 +146,15 @@ export default function Auth() {
         return;
       }
 
-      // If vendor, create vendor profile
+      // Vendor profile
       if (isVendor) {
-        const { error: vendorError } = await supabase
-          .from("vendor_profiles")
-          .insert({
-            user_id: authData.user.id,
-            business_name: businessName,
-            business_description: businessDescription || null,
-            business_type: businessType || null,
-            verification_status: "pending",
-          });
+        const { error: vendorError } = await supabase.from("vendor_profiles").insert({
+          user_id: authData.user.id,
+          business_name: businessName,
+          business_description: businessDescription || null,
+          business_type: businessType || null,
+          verification_status: "pending",
+        });
 
         if (vendorError) {
           toast.error("Failed to create vendor profile: " + vendorError.message);
@@ -160,22 +179,25 @@ export default function Auth() {
           Back to Home
         </Button>
       </Link>
+
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{isVendor ? "Vendor" : "Customer"} Authentication</CardTitle>
           <CardDescription>
-            {isVendor 
-              ? "Sign up to become a vendor on EKI or log in to your vendor account" 
+            {isVendor
+              ? "Sign up to become a vendor on EKI or log in to your vendor account"
               : "Sign up or log in to shop on EKI"}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
+            {/* LOGIN */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -188,6 +210,7 @@ export default function Auth() {
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
                   <Input
@@ -198,12 +221,14 @@ export default function Auth() {
                     required
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Logging in..." : "Log In"}
                 </Button>
               </form>
             </TabsContent>
-            
+
+            {/* SIGNUP */}
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
@@ -216,6 +241,7 @@ export default function Auth() {
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
@@ -226,6 +252,7 @@ export default function Auth() {
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
@@ -237,6 +264,7 @@ export default function Auth() {
                     minLength={6}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-phone">Phone (Optional)</Label>
                   <Input
@@ -246,6 +274,7 @@ export default function Auth() {
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-location">Location (Optional)</Label>
                   <Input
@@ -255,7 +284,7 @@ export default function Auth() {
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
-                
+
                 {isVendor && (
                   <>
                     <div className="space-y-2">
@@ -268,6 +297,7 @@ export default function Auth() {
                         required
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="business-description">Business Description</Label>
                       <Input
@@ -277,6 +307,7 @@ export default function Auth() {
                         onChange={(e) => setBusinessDescription(e.target.value)}
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="business-type">Business Type</Label>
                       <Input
@@ -289,7 +320,7 @@ export default function Auth() {
                     </div>
                   </>
                 )}
-                
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creating Account..." : "Sign Up"}
                 </Button>
