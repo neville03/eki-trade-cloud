@@ -14,10 +14,10 @@ type DashboardStats = {
 
 type Order = {
   id: string;
-  total_amount: number;
+  total_price: number;
   status: string;
   created_at?: string;
-  buyer_id?: string;
+  customer_id?: string;
   product_id?: string;
   vendor_id?: string;
 };

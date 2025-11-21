@@ -23,10 +23,10 @@ type Product = {
 };
 type Order = {
   id: string;
-  total_amount: number;
+  total_price: number;
   status: string;
   created_at?: string;
-  buyer_id?: string;
+  customer_id?: string;
   product_id?: string;
   vendor_id?: string;
 };
@@ -105,7 +105,7 @@ const VendorDashboard = () => {
   };
 
   const dashboardStats = useMemo(() => {
-    const totalSales = orders.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const totalSales = orders.reduce((s, o) => s + Number(o.total_price || 0), 0);
     const pendingOrders = orders.filter((o) => o.status === "pending").length;
     const completedOrders = orders.filter((o) => o.status === "completed").length;
     const avgOrderValue = orders.length ? totalSales / orders.length : 0;
